@@ -1,0 +1,4 @@
+package fr.lg30.waynesworld;
+import java.io.*; import java.nio.file.*; import java.util.*;
+public final class RomCreationService {public static final String OUTPUT_NAME="Waynes_World_FR.bin";private final RomValidator validator=new RomValidator();
+ public Path create(Path source,Path directory,boolean translation,Set<Cheat> cheats)throws IOException{byte[] original=Files.readAllBytes(source);Hashes before=Hashes.of(original);if(!validator.isCompatible(original))throw new IOException("ROM USA incompatible");byte[] result=translation?new FrenchTranslationPatch().apply(original):original.clone();result=new TrainerPatch().apply(result,cheats);Path out=directory.resolve(OUTPUT_NAME);Files.write(out,result,StandardOpenOption.CREATE,StandardOpenOption.TRUNCATE_EXISTING);if(!before.equals(Hashes.of(Files.readAllBytes(source))))throw new IOException("La ROM source a été modifiée");return out;}}

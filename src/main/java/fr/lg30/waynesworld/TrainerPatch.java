@@ -1,0 +1,6 @@
+package fr.lg30.waynesworld;
+import java.io.*; import java.util.*;
+public final class TrainerPatch { public static final int HOOK=0x332,TRAINER=0xF98BA; static final byte[] EXPECTED={0x4e,(byte)0xb9,0,3,0x65,0x7a}, REPLACEMENT={0x4e,(byte)0xb9,0,0x0f,(byte)0x98,(byte)0xba};
+ public byte[] apply(byte[] input,Set<Cheat> cheats)throws IOException{byte[] rom=input.clone();if(cheats.isEmpty())return rom;if(!Arrays.equals(Arrays.copyOfRange(rom,HOOK,HOOK+6),EXPECTED))throw new IOException("Hook ROM inattendu");var b=new ByteArrayOutputStream();b.write(EXPECTED);for(Cheat c:Cheat.values())if(cheats.contains(c))for(int[] w:c.writes)b.write(new byte[]{0x13,(byte)0xfc,0,(byte)w[1],0,(byte)0xff,(byte)(w[0]>>8),(byte)w[0]});b.write(0x4e);b.write(0x75);byte[] routine=b.toByteArray();for(int i=0;i<routine.length;i++)if((rom[TRAINER+i]&255)!=255)throw new IOException("Zone trainer non vierge");System.arraycopy(REPLACEMENT,0,rom,HOOK,6);System.arraycopy(routine,0,rom,TRAINER,routine.length);int sum=checksum(rom);rom[0x18e]=(byte)(sum>>8);rom[0x18f]=(byte)sum;return rom;}
+ public static int checksum(byte[] r){int s=0;for(int i=0x200;i<r.length;i+=2)s=(s+((r[i]&255)<<8)+(i+1<r.length?(r[i+1]&255):0))&0xffff;return s;}
+}
