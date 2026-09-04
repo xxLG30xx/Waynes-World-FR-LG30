@@ -1,17 +1,120 @@
 package fr.lg30.waynesworld;
-import javax.imageio.ImageIO; import javax.swing.*; import javax.swing.border.*; import java.awt.*; import java.awt.image.*; import java.io.*; import java.nio.file.*; import java.util.*;
+
+import javax.imageio.ImageIO;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.EnumSet;
+import java.util.Set;
+
+/** The real, interactive application surface and the source of preview.png. */
 public final class PatcherPanel extends JPanel {
- private final JLabel file=new JLabel("Aucun fichier"),size=new JLabel("—"),status=new JLabel("Sélectionnez la ROM USA originale"); private final JButton create=button("▶  CRÉER MA ROM",new Color(28,166,61)); private final JCheckBox translation=box("Traduction française LG30",true); private final Map<Cheat,JCheckBox> choices=new EnumMap<>(Cheat.class); private Path selected;
- public PatcherPanel(){setPreferredSize(new Dimension(1500,950));setBackground(new Color(7,11,15));setLayout(new BorderLayout(14,12));setBorder(new EmptyBorder(12,15,12,15));add(banner(),BorderLayout.NORTH);var center=new JPanel(new BorderLayout(12,12));center.setOpaque(false);center.add(selection(),BorderLayout.NORTH);var columns=new JPanel(new GridBagLayout());columns.setOpaque(false);var g=new GridBagConstraints();g.gridy=0;g.fill=GridBagConstraints.BOTH;g.weighty=1;g.insets=new Insets(0,0,0,12);g.gridx=0;g.weightx=.25;columns.add(translation(),g);g.gridx=1;g.weightx=.48;columns.add(cheats(),g);g.gridx=2;g.weightx=.27;g.insets=new Insets(0,0,0,0);columns.add(right(),g);center.add(columns);add(center);add(footer(),BorderLayout.SOUTH);}
- private JComponent banner(){BufferedImage im=image("/ui/wayne-banner.png.b64");return new JComponent(){public Dimension getPreferredSize(){return new Dimension(1500,238);}protected void paintComponent(Graphics g){g.drawImage(im,0,0,getWidth(),getHeight(),null);}};}
- private JPanel selection(){var p=panel("1. SÉLECTION DE LA ROM");p.setLayout(new BorderLayout(18,4));var choose=button("▱  Choisir la ROM Wayne's World (.md)",new Color(37,104,177));choose.addActionListener(e->choose());p.add(choose,BorderLayout.WEST);var info=new JPanel(new GridLayout(3,2,8,5));info.setOpaque(false);info.add(label("Fichier sélectionné :"));info.add(file);info.add(label("Taille :"));info.add(size);info.add(label("Statut :"));info.add(status);p.add(info);var cover=image("/ui/wayne-cover.png.b64");p.add(new JLabel(new ImageIcon(cover.getScaledInstance(255,142,Image.SCALE_SMOOTH))),BorderLayout.EAST);return p;}
- private JPanel translation(){var p=panel("2. TRADUCTION");p.setLayout(new BoxLayout(p,BoxLayout.Y_AXIS));p.add(translation);p.add(Box.createVerticalStrut(15));var d=label("<html>Applique les 183 traductions validées,<br>la région World U / E / J et l'écran<br>d'introduction LG30 / Team Delta Island.</html>");d.setForeground(new Color(185,190,198));p.add(d);return p;}
- private JPanel cheats(){var p=panel("3. CHEATS / OPTIONS DE JEU");p.setLayout(new GridLayout(4,1,8,8));for(Cheat c:Cheat.values()){var b=box(c.label,false);choices.put(c,b);p.add(b);}return p;}
- private JPanel right(){var p=new JPanel(new GridLayout(2,1,0,12));p.setOpaque(false);var creation=panel("4. CRÉATION");creation.setLayout(new BorderLayout(0,12));create.setEnabled(false);create.setFont(create.getFont().deriveFont(Font.BOLD,23f));create.addActionListener(e->create());creation.add(create,BorderLayout.CENTER);creation.add(label("<html>Une nouvelle ROM sera créée.<br>La ROM originale ne sera jamais modifiée.</html>"),BorderLayout.SOUTH);p.add(creation);var info=panel("INFORMATIONS");info.setLayout(new BorderLayout());info.add(label("<html>Wayne's World © 1992<br><br>Sega Mega Drive / Genesis<br><br>Hack réalisé par LG30 / Team Delta Island</html>"));p.add(info);return p;}
- private JPanel footer(){var p=new JPanel(new BorderLayout());p.setOpaque(false);p.add(label("v1.0.0"),BorderLayout.WEST);p.add(label("Pour usage personnel uniquement."),BorderLayout.CENTER);return p;}
- private JPanel panel(String title){var p=new JPanel();p.setBackground(new Color(19,25,31));p.setBorder(new CompoundBorder(new TitledBorder(new LineBorder(new Color(56,65,73),1,true),title,TitledBorder.LEFT,TitledBorder.TOP,new Font("SansSerif",Font.BOLD,18),new Color(65,160,255)),new EmptyBorder(15,18,15,18)));return p;}
- private static JLabel label(String s){var l=new JLabel(s);l.setForeground(new Color(229,232,236));l.setFont(new Font("SansSerif",Font.PLAIN,16));return l;} private static JCheckBox box(String s,boolean on){var b=new JCheckBox(s,on);b.setOpaque(false);b.setForeground(Color.WHITE);b.setFont(new Font("SansSerif",Font.BOLD,17));b.setFocusPainted(false);return b;} private static JButton button(String s,Color c){var b=new JButton(s);b.setBackground(c);b.setForeground(Color.WHITE);b.setFont(new Font("SansSerif",Font.BOLD,17));b.setFocusPainted(false);b.setBorder(new EmptyBorder(18,24,18,24));return b;}
- private static BufferedImage image(String name){try(var in=PatcherPanel.class.getResourceAsStream(name)){return ImageIO.read(new ByteArrayInputStream(Base64.getMimeDecoder().decode(in.readAllBytes())));}catch(Exception e){throw new IllegalStateException("Ressource image invalide: "+name,e);}}
- private void choose(){var fc=new JFileChooser();if(fc.showOpenDialog(this)==JFileChooser.APPROVE_OPTION){selected=fc.getSelectedFile().toPath();try{byte[] b=Files.readAllBytes(selected);file.setText(selected.getFileName().toString());size.setText(b.length+" octets");boolean ok=new RomValidator().isCompatible(b);status.setText(ok?"ROM Wayne's World (USA) compatible":"ROM non reconnue — aucune modification ne sera effectuée");status.setForeground(ok?new Color(62,205,91):new Color(240,68,68));create.setEnabled(ok);}catch(IOException e){status.setText(e.getMessage());create.setEnabled(false);}}}
- private void create(){try{Set<Cheat>s=EnumSet.noneOf(Cheat.class);choices.forEach((c,b)->{if(b.isSelected())s.add(c);});Path out=new RomCreationService().create(selected,selected.toAbsolutePath().getParent(),translation.isSelected(),s);JOptionPane.showMessageDialog(this,"ROM créée : "+out);}catch(Exception e){JOptionPane.showMessageDialog(this,e.getMessage(),"Erreur",JOptionPane.ERROR_MESSAGE);}}
+    public static final int DESIGN_WIDTH = 1536, DESIGN_HEIGHT = 1024;
+    private final BufferedImage reference;
+    private final Set<Cheat> cheats = EnumSet.noneOf(Cheat.class);
+    private boolean translation = true;
+    private boolean previewState;
+    private Path source;
+    private String error;
+
+    public PatcherPanel() {
+        try (var in = getClass().getResourceAsStream("/ui/reference.png")) {
+            if (in == null || (reference = ImageIO.read(in)) == null) throw new IOException("image absente");
+        } catch (IOException e) { throw new IllegalStateException("Ressource graphique Image.png invalide", e); }
+        setBackground(Color.BLACK);
+        setPreferredSize(new java.awt.Dimension(DESIGN_WIDTH, DESIGN_HEIGHT));
+        addMouseListener(new MouseAdapter() { @Override public void mouseClicked(MouseEvent e) { click(toDesignX(e.getX()), toDesignY(e.getY())); } });
+    }
+
+    /** Gives the deterministic reference state used by the headless visual regression preview. */
+    public void setPreviewState(boolean enabled) { previewState = enabled; repaint(); }
+
+    @Override protected void paintComponent(Graphics graphics) {
+        super.paintComponent(graphics);
+        Graphics2D g = (Graphics2D) graphics.create();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.drawImage(reference, 0, 0, getWidth(), getHeight(), null);
+        if (!previewState && source == null) paintUnselectedState(g);
+        if (!previewState) paintOptionState(g);
+        g.dispose();
+    }
+
+    private void paintUnselectedState(Graphics2D screen) {
+        double sx = getWidth() / (double) DESIGN_WIDTH, sy = getHeight() / (double) DESIGN_HEIGHT;
+        Graphics2D g = (Graphics2D) screen.create(); g.scale(sx, sy);
+        g.setColor(new Color(7, 17, 24)); g.fillRoundRect(481, 365, 685, 130, 10, 10);
+        g.setFont(new Font("SansSerif", Font.PLAIN, 20)); g.setColor(Color.WHITE);
+        g.drawString("Fichier sélectionné :", 493, 402); g.drawString("Taille :", 493, 440); g.drawString("Statut :", 493, 477);
+        g.setColor(new Color(145, 155, 165)); g.drawString("Aucun fichier", 705, 402); g.drawString("—", 705, 440);
+        g.drawString("Sélectionnez la ROM USA officielle", 705, 477);
+        g.setColor(new Color(47, 68, 59)); g.fillRoundRect(1120, 597, 371, 80, 10, 10);
+        g.setColor(new Color(190, 200, 194)); g.setFont(new Font("SansSerif", Font.BOLD, 28));
+        g.drawString("▶  CRÉER MA ROM", 1180, 648);
+        if (error != null) { g.setColor(new Color(245, 75, 75)); g.setFont(new Font("SansSerif", Font.BOLD, 18)); g.drawString(error, 705, 477); }
+        g.dispose();
+    }
+
+    private void paintOptionState(Graphics2D screen) {
+        int[] ys = {606, 676, 751, 840};
+        Graphics2D g = (Graphics2D) screen.create();
+        g.scale(getWidth() / (double) DESIGN_WIDTH, getHeight() / (double) DESIGN_HEIGHT);
+        if (!translation) {
+            g.setColor(new Color(9, 20, 28)); g.fillRoundRect(49, 595, 29, 29, 5, 5);
+            g.setColor(new Color(120, 140, 155)); g.drawRoundRect(49, 595, 28, 28, 5, 5);
+        }
+        for (int i = 0; i < Cheat.values().length; i++) if (cheats.contains(Cheat.values()[i])) {
+            g.setColor(new Color(50, 145, 255)); g.fillRoundRect(546, ys[i] - 10, 21, 21, 4, 4);
+            g.setColor(Color.WHITE); g.setFont(new Font("SansSerif", Font.BOLD, 17)); g.drawString("✓", 548, ys[i] + 7);
+        }
+        g.dispose();
+    }
+
+    private void click(int x, int y) {
+        if (x >= 48 && x <= 466 && y >= 385 && y <= 465) chooseRom();
+        else if (x >= 48 && x <= 360 && y >= 590 && y <= 630) { translation = !translation; repaint(); }
+        else if (x >= 535 && x <= 1055 && y >= 575 && y <= 895) {
+            int[] centers = {606, 676, 751, 850}; int best = 0;
+            for (int i = 1; i < centers.length; i++) if (Math.abs(y - centers[i]) < Math.abs(y - centers[best])) best = i;
+            Cheat cheat = Cheat.values()[best]; if (!cheats.remove(cheat)) cheats.add(cheat); repaint();
+        } else if (x >= 1115 && x <= 1495 && y >= 590 && y <= 685 && source != null) createRom();
+    }
+
+    private void chooseRom() {
+        JFileChooser chooser = new JFileChooser(); chooser.setFileFilter(new FileNameExtensionFilter("ROM Mega Drive (*.md, *.bin)", "md", "bin"));
+        if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        Path candidate = chooser.getSelectedFile().toPath();
+        try {
+            if (!new RomValidator().isCompatible(Files.readAllBytes(candidate))) {
+                source = null; error = "✕ ROM non compatible"; JOptionPane.showMessageDialog(this,
+                        "Cette ROM n’est pas la version USA officielle attendue.", "ROM incompatible", JOptionPane.ERROR_MESSAGE);
+            } else { source = candidate; error = null; }
+        } catch (IOException e) { source = null; error = "✕ Lecture impossible"; }
+        repaint();
+    }
+
+    private void createRom() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setSelectedFile(new java.io.File(RomCreationService.OUTPUT_NAME));
+        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        Path destination = chooser.getSelectedFile().toPath();
+        try {
+            new RomCreationService().create(source, destination, translation, EnumSet.copyOf(cheats));
+            JOptionPane.showMessageDialog(this, "ROM créée avec succès :\n" + destination, "PARTY ON!", JOptionPane.INFORMATION_MESSAGE);
+        } catch (IOException e) { JOptionPane.showMessageDialog(this, e.getMessage(), "Erreur", JOptionPane.ERROR_MESSAGE); }
+    }
+
+    private int toDesignX(int x) { return (int) Math.round(x * DESIGN_WIDTH / (double) getWidth()); }
+    private int toDesignY(int y) { return (int) Math.round(y * DESIGN_HEIGHT / (double) getHeight()); }
 }

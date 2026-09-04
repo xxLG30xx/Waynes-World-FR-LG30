@@ -1,3 +1,36 @@
 package fr.lg30.waynesworld;
-import javax.imageio.ImageIO; import javax.swing.*; import java.awt.*; import java.awt.image.BufferedImage; import java.io.File;
-public final class WaynesWorldPatcher {public static void main(String[] args)throws Exception{if(args.length==1&&args[0].equals("--render-preview")){SwingUtilities.invokeAndWait(()->{try{var p=new PatcherPanel();p.setSize(1500,950);p.doLayout();layout(p);var im=new BufferedImage(1500,950,BufferedImage.TYPE_INT_ARGB);p.printAll(im.createGraphics());ImageIO.write(im,"PNG",new File("preview.png"));}catch(Exception e){throw new RuntimeException(e);}});return;}SwingUtilities.invokeLater(()->{var f=new JFrame("Wayne's World ROM Patcher LG30");f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);f.setContentPane(new PatcherPanel());f.pack();f.setMinimumSize(new Dimension(1100,720));f.setLocationRelativeTo(null);f.setVisible(true);});}private static void layout(Container c){for(Component x:c.getComponents())if(x instanceof Container n){n.doLayout();layout(n);}}}
+
+import javax.imageio.ImageIO;
+import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
+import java.awt.Dimension;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
+
+public final class WaynesWorldPatcher {
+    private WaynesWorldPatcher() {}
+    public static void main(String[] args) throws Exception {
+        if (args.length == 1 && "--render-preview".equals(args[0])) { renderPreview(); return; }
+        SwingUtilities.invokeLater(() -> {
+            JFrame frame = new JFrame("Wayne’s World ROM Patcher LG30");
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setContentPane(new PatcherPanel());
+            frame.pack(); frame.setMinimumSize(new Dimension(1100, 733)); frame.setLocationRelativeTo(null); frame.setVisible(true);
+        });
+    }
+
+    private static void renderPreview() throws Exception {
+        final Exception[] failure = new Exception[1];
+        SwingUtilities.invokeAndWait(() -> {
+            try {
+                PatcherPanel panel = new PatcherPanel(); panel.setPreviewState(true);
+                panel.setSize(PatcherPanel.DESIGN_WIDTH, PatcherPanel.DESIGN_HEIGHT);
+                BufferedImage image = new BufferedImage(PatcherPanel.DESIGN_WIDTH, PatcherPanel.DESIGN_HEIGHT, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D graphics = image.createGraphics(); panel.printAll(graphics); graphics.dispose();
+                ImageIO.write(image, "PNG", new File("preview.png"));
+            } catch (Exception e) { failure[0] = e; }
+        });
+        if (failure[0] != null) throw failure[0];
+    }
+}

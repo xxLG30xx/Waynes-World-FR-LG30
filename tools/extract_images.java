@@ -1,3 +1,0 @@
-import java.awt.image.BufferedImage; import java.io.*; import java.nio.file.*; import java.util.Base64; import javax.imageio.ImageIO;
-class extract_images { public static void main(String[] a)throws Exception { BufferedImage im=ImageIO.read(new File("Image.png")); crop(im,15,55,1506,246,"wayne-banner.png.b64"); crop(im,1203,341,255,142,"wayne-cover.png.b64"); }
- static void crop(BufferedImage im,int x,int y,int w,int h,String n)throws Exception{var b=new ByteArrayOutputStream();ImageIO.write(im.getSubimage(x,y,w,h),"PNG",b);var p=Path.of("src/main/resources/ui",n);Files.createDirectories(p.getParent());Files.writeString(p,Base64.getEncoder().encodeToString(b.toByteArray())+"\n");}}
